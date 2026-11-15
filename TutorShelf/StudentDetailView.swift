@@ -7,12 +7,30 @@ struct StudentDetailView: View {
     @State private var showingAddLesson = false
     @State private var showingImporter = false
     @State private var previewURL: URL?
+    @State private var showingAddTrack = false
 
     var body: some View {
         List {
             Section {
                 NavigationLink("Monthly report") {
                     ReportView(student: student)
+                }
+            }
+            Section("Subjects") {
+                ForEach(student.tracks) { track in
+                    NavigationLink {
+                        TrackView(track: track)
+                    } label: {
+                        VStack(alignment: .leading) {
+                            Text(track.name).font(.headline)
+                            Text(track.kind)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Button("Add subject", systemImage: "plus") {
+                    showingAddTrack = true
                 }
             }
             Section("Lessons") {
@@ -76,6 +94,9 @@ struct StudentDetailView: View {
         }
         .sheet(isPresented: $showingAddLesson) {
             AddLessonView(student: student)
+        }
+        .sheet(isPresented: $showingAddTrack) {
+            AddTrackView(student: student)
         }
         .fileImporter(isPresented: $showingImporter,
                       allowedContentTypes: [.pdf, .image]) { result in
