@@ -1,8 +1,29 @@
-//
-//  Student.swift
-//  TutorShelf
-//
-//  Created by yulicia kwok on 2026-11-15.
-//
+import SwiftData
 
-import Foundation
+@Model
+class Student {
+    var name: String
+    var grade: String
+    var subjects: String
+    var strengths: String
+    var focusAreas: String
+    var interests: String
+    var learningStyle: String
+    var notes: String
+    
+    @Relationship(deleteRule: .cascade, inverse: \Lesson.student)
+    var lessons: [Lesson] = []
+
+    init(name: String, grade: String = "", subjects: String = "",
+         strengths: String = "", focusAreas: String = "",
+         interests: String = "", learningStyle: String = "", notes: String = ""){
+        self.name = name
+        self.grade = grade
+        self.subjects = subjects
+        self.strengths = strengths
+        self.focusAreas = focusAreas
+        self.interests = interests
+        self.learningStyle = learningStyle
+        self.notes = notes
+    }
+}
