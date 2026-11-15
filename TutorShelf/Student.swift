@@ -13,6 +13,9 @@ class Student {
     
     @Relationship(deleteRule: .cascade, inverse: \Lesson.student)
     var lessons: [Lesson] = []
+    
+    @Relationship(deleteRule: .cascade, inverse: \Worksheet.student)
+    var worksheets: [Worksheet] = []
 
     init(name: String, grade: String = "", subjects: String = "",
          strengths: String = "", focusAreas: String = "",

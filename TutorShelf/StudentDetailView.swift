@@ -1,8 +1,12 @@
 import SwiftUI
+import QuickLook
+import UniformTypeIdentifiers
 
 struct StudentDetailView: View {
     let student: Student
     @State private var showingAddLesson = false
+    @State private var showingImporter = false
+    @State private var previewURL: URL?
 
     var body: some View {
         List {
@@ -33,8 +37,25 @@ struct StudentDetailView: View {
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                             Text(lesson.note)
+                            if !lesson.worksheets.isEmpty {
+                                Label("\(lesson.worksheets.count)", systemImage: "paperclip")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
+                }
+            }
+            Section("Worksheets") {
+                ForEach(student.worksheets.sorted { $0.addedOn > $1.addedOn }) { worksheet in
+                    Button {
+                        open(worksheet)
+                    } label: {
+                        Label(worksheet.title, systemImage: "doc")
+                    }
+                }
+                Button("Add worksheet", systemImage: "plus") {
+                    showingImporter = true
                 }
             }
             Section("Basics") {
@@ -56,5 +77,27 @@ struct StudentDetailView: View {
         .sheet(isPresented: $showingAddLesson) {
             AddLessonView(student: student)
         }
+        .fileImporter(isPresented: $showingImporter,
+                      allowedContentTypes: [.pdf, .image]) { result in
+            if case .success(let url) = result {
+                importFile(url)
+            }
+        }
+        .quickLookPreview($previewURL)
+    }
+    func importFile(_ url: URL) {
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+
+        guard let data = try? Data(contentsOf: url) else { return }
+        let worksheet = Worksheet(title: url.lastPathComponent, fileData: data)
+        student.worksheets.append(worksheet)
+    }
+
+    func open(_ worksheet: Worksheet) {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent(worksheet.title)
+        try? worksheet.fileData.write(to: url)
+        previewURL = url
     }
 }

@@ -10,6 +10,7 @@ struct AddLessonView: View {
     @State private var rating = "Okay"
     @State private var note = ""
     @State private var shareWithParents = true
+    @State private var selectedWorksheets: [Worksheet] = []
 
     var body: some View {
         NavigationStack {
@@ -26,6 +27,30 @@ struct AddLessonView: View {
 
                 TextField("Your note", text: $note, axis: .vertical)
                 Toggle("Share with parents", isOn: $shareWithParents)
+                if !student.worksheets.isEmpty {
+                    Section("Worksheets used") {
+                        ForEach(student.worksheets
+                            .filter { $0.lesson == nil }
+                            .sorted { $0.addedOn > $1.addedOn }
+                            .prefix(5)) { worksheet in
+                            Button {
+                                if let index = selectedWorksheets.firstIndex(where: { $0 === worksheet }) {
+                                    selectedWorksheets.remove(at: index)
+                                } else {
+                                    selectedWorksheets.append(worksheet)
+                                }
+                            } label: {
+                                HStack {
+                                    Text(worksheet.title)
+                                    Spacer()
+                                    if selectedWorksheets.contains(where: { $0 === worksheet }) {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             .navigationTitle("How did it go?")
             .navigationBarTitleDisplayMode(.inline)
@@ -38,6 +63,9 @@ struct AddLessonView: View {
                         let lesson = Lesson(date: date, topic: topic, rating: rating,
                                             note: note, shareWithParents: shareWithParents)
                         student.lessons.append(lesson)
+                        for worksheet in selectedWorksheets {
+                            worksheet.lesson = lesson
+                        }
                         dismiss()
                     }
                     .disabled(topic.isEmpty)
