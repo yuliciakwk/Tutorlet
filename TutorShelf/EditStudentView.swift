@@ -41,6 +41,15 @@ struct EditStudentView: View {
 
                 Stepper("Length: \(student.lessonMinutes) min",
                         value: $student.lessonMinutes, in: 30...120, step: 15)
+                Picker("Regular day", selection: $student.lessonWeekday) {
+                    Text("None").tag(0)
+                    ForEach(1...7, id: \.self) { day in
+                        Text(Calendar.current.weekdaySymbols[day - 1]).tag(day)
+                    }
+                }
+                if student.lessonWeekday > 0 {
+                    DatePicker("Time", selection: $student.lessonTime, displayedComponents: .hourAndMinute)
+                }
             }
 
             Section("About them") {

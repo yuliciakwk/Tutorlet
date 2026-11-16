@@ -15,6 +15,8 @@ struct AddStudentView: View {
     @State private var notes = ""
     @State private var format = "In person"
     @State private var lessonMinutes = 60
+    @State private var lessonWeekday = 0
+    @State private var lessonTime = Calendar.current.date(bySettingHour: 16, minute: 0, second: 0, of: Date()) ?? Date()
 
     var body: some View {
         NavigationStack {
@@ -32,6 +34,15 @@ struct AddStudentView: View {
                     .pickerStyle(.segmented)
 
                     Stepper("Length: \(lessonMinutes) min", value: $lessonMinutes, in: 30...120, step: 15)
+                    Picker("Regular day", selection: $lessonWeekday) {
+                        Text("None").tag(0)
+                        ForEach(1...7, id: \.self) { day in
+                            Text(Calendar.current.weekdaySymbols[day - 1]).tag(day)
+                        }
+                    }
+                    if lessonWeekday > 0 {
+                        DatePicker("Time", selection: $lessonTime, displayedComponents: .hourAndMinute)
+                    }
                 }
                 Section("About them") {
                     TextField("Strengths", text: $strengths, axis: .vertical)
@@ -62,6 +73,8 @@ struct AddStudentView: View {
                         )
                         student.format = format
                         student.lessonMinutes = lessonMinutes
+                        student.lessonWeekday = lessonWeekday
+                        student.lessonTime = lessonTime
                         context.insert(student)
                         dismiss()
                     }

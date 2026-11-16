@@ -1,4 +1,5 @@
 import SwiftData
+import Foundation
 
 @Model
 class Student {
@@ -13,6 +14,9 @@ class Student {
     var format: String = "In person"
     var lessonMinutes: Int = 60
     var colorName: String = ""
+    var lessonWeekday: Int = 0
+    var lessonTime: Date = Date()
+    var reportOverviews: [String: String] = [:]
     
     @Relationship(deleteRule: .cascade, inverse: \Lesson.student)
     var lessons: [Lesson] = []
@@ -32,5 +36,22 @@ class Student {
         self.interests = interests
         self.learningStyle = learningStyle
         self.notes = notes
+    }
+}
+
+extension Student {
+    var nextRegularLesson: Date? {
+        guard lessonWeekday > 0 else { return nil }
+
+        let time = Calendar.current.dateComponents([.hour, .minute], from: lessonTime)
+        var match = DateComponents()
+        match.weekday = lessonWeekday
+        match.hour = time.hour
+        match.minute = time.minute
+
+        let lastPlanned = lessons.filter { $0.isPlanned }.map { $0.date }.max()
+        let start = max(Date(), lastPlanned ?? Date())
+
+        return Calendar.current.nextDate(after: start, matching: match, matchingPolicy: .nextTime)
     }
 }
