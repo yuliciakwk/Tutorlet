@@ -60,7 +60,6 @@ struct AddStudentView: View {
                         student.format = format
                         student.lessonMinutes = lessonMinutes
                         context.insert(student)
-                        context.insert(student)
                         dismiss()
                     }
                     .disabled(name.isEmpty)

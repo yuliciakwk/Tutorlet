@@ -12,6 +12,7 @@ class Student {
     var notes: String
     var format: String = "In person"
     var lessonMinutes: Int = 60
+    var colorName: String = ""
     
     @Relationship(deleteRule: .cascade, inverse: \Lesson.student)
     var lessons: [Lesson] = []

@@ -11,6 +11,7 @@ struct TutorShelfApp: App {
                 ContentView()
                     .tabItem { Label("Students", systemImage: "person.2") }
             }
+            .preferredColorScheme(.light)
         }
         .modelContainer(for: Student.self)
     }
