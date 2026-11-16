@@ -8,100 +8,43 @@ struct StudentDetailView: View {
     @State private var showingPlanLesson = false
     @State private var showingImporter = false
     @State private var previewURL: URL?
-    @State private var showingAddTrack = false
+
+    var nextLesson: Lesson? {
+        student.lessons
+            .filter { $0.isPlanned }
+            .sorted { $0.date < $1.date }
+            .first
+    }
+
+    var pastLessons: [Lesson] {
+        student.lessons
+            .filter { !$0.isPlanned }
+            .sorted { $0.date > $1.date }
+    }
+
+    var tailoredTo: String {
+        [student.learningStyle, student.interests]
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
+    }
 
     var body: some View {
-        List {
-            Section {
-                NavigationLink("Monthly report") {
-                    ReportView(student: student)
-                }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                header
+                nextLessonCard
+                shortcuts
+                pastLessonsSection
             }
-            Section("Subjects") {
-                ForEach(student.tracks) { track in
-                    NavigationLink {
-                        TrackView(track: track)
-                    } label: {
-                        VStack(alignment: .leading) {
-                            Text(track.name).font(.headline)
-                            if let next = track.nextTopic {
-                                Text("\(track.kind) · Next: \(next.title)")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else {
-                                Text(track.kind)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-                Button("Add subject", systemImage: "plus") {
-                    showingAddTrack = true
-                }
-            }
-            Section("Lessons") {
-                ForEach(student.lessons.sorted { $0.date > $1.date }) { lesson in
-                    NavigationLink {
-                        EditLessonView(lesson: lesson)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(lesson.topic).font(.headline)
-                                if !lesson.shareWithParents {
-                                    Image(systemName: "lock")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-                                Spacer()
-                                Text(lesson.isPlanned ? "Planned" : lesson.rating)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Text(lesson.date.formatted(date: .abbreviated, time: .omitted))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Text(lesson.note)
-                            if !lesson.worksheets.isEmpty {
-                                Label("\(lesson.worksheets.count)", systemImage: "paperclip")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-            }
-            Section("Worksheets") {
-                ForEach(student.worksheets.sorted { $0.addedOn > $1.addedOn }) { worksheet in
-                    Button {
-                        open(worksheet)
-                    } label: {
-                        Label(worksheet.title, systemImage: "doc")
-                    }
-                }
-                Button("Add worksheet", systemImage: "plus") {
-                    showingImporter = true
-                }
-            }
-            Section("Basics") {
-                LabeledContent("Grade", value: student.grade)
-                LabeledContent("Subjects", value: student.subjects)
-                LabeledContent("Format", value: student.format)
-                LabeledContent("Lesson length", value: "\(student.lessonMinutes) min")
-            }
-            Section("Strengths") { Text(student.strengths) }
-            Section("Focus areas") { Text(student.focusAreas) }
-            Section("Interests") { Text(student.interests) }
-            Section("Learning style") { Text(student.learningStyle) }
-            Section("Notes") { Text(student.notes) }
+            .padding(20)
         }
+        .background(Theme.background)
+        .foregroundStyle(Theme.ink)
         .navigationTitle(student.name)
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             Button("Plan lesson", systemImage: "calendar.badge.plus") {
                 showingPlanLesson = true
-            }
-            Button("Add lesson", systemImage: "square.and.pencil") {
-                showingAddLesson = true
             }
         }
         .sheet(isPresented: $showingPlanLesson) {
@@ -110,31 +53,168 @@ struct StudentDetailView: View {
         .sheet(isPresented: $showingAddLesson) {
             AddLessonView(student: student)
         }
-        .sheet(isPresented: $showingAddTrack) {
-            AddTrackView(student: student)
-        }
         .fileImporter(isPresented: $showingImporter,
                       allowedContentTypes: [.pdf, .image]) { result in
-            if case .success(let url) = result {
-                importFile(url)
+            if case .success(let url) = result, let worksheet = Worksheet.load(from: url) {
+                student.worksheets.append(worksheet)
+                worksheet.lesson = nextLesson
             }
         }
         .quickLookPreview($previewURL)
     }
 
-    func importFile(_ url: URL) {
-        guard url.startAccessingSecurityScopedResource() else { return }
-        defer { url.stopAccessingSecurityScopedResource() }
-
-        guard let data = try? Data(contentsOf: url) else { return }
-        let worksheet = Worksheet(title: url.lastPathComponent, fileData: data)
-        student.worksheets.append(worksheet)
+    var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(student.name)
+                .font(.rounded(.largeTitle, .heavy))
+            Text("\(student.grade) · \(student.subjects) · \(student.format)")
+                .font(.rounded(.subheadline, .medium))
+                .foregroundStyle(Theme.secondaryText)
+            if !tailoredTo.isEmpty {
+                Text("Tailored to: \(tailoredTo)")
+                    .font(.rounded(.footnote, .medium))
+                    .foregroundStyle(Theme.secondaryText)
+                    .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card(Theme.color(for: student))
     }
 
-    func open(_ worksheet: Worksheet) {
-        let url = FileManager.default.temporaryDirectory
-            .appendingPathComponent(worksheet.title)
-        try? worksheet.fileData.write(to: url)
-        previewURL = url
+    var nextLessonCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let lesson = nextLesson {
+                HStack {
+                    Text("Next lesson")
+                    Spacer()
+                    Text(lesson.date.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
+                }
+                .font(.rounded(.caption, .bold))
+                .foregroundStyle(Theme.secondaryText)
+
+                Text(lesson.topic)
+                    .font(.rounded(.title2, .heavy))
+
+                if let worksheet = lesson.worksheets.first {
+                    Button {
+                        previewURL = worksheet.temporaryURL()
+                    } label: {
+                        Text(student.format == "Online" ? "Open slides" : "Open worksheet")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                } else {
+                    Button {
+                        showingImporter = true
+                    } label: {
+                        Text("Attach worksheet").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                }
+
+                NavigationLink {
+                    EditLessonView(lesson: lesson)
+                } label: {
+                    Text("Write note").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(SecondaryButtonStyle())
+            } else {
+                Text("No lesson planned")
+                    .font(.rounded(.title3, .bold))
+                Button {
+                    showingPlanLesson = true
+                } label: {
+                    Text("Plan next lesson").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(PrimaryButtonStyle())
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    var shortcuts: some View {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+            NavigationLink {
+                SubjectsView(student: student)
+            } label: {
+                shortcut("Roadmap", icon: "map")
+            }
+            NavigationLink {
+                WorksheetsView(student: student)
+            } label: {
+                shortcut("Worksheets", icon: "doc.on.doc")
+            }
+            NavigationLink {
+                ReportView(student: student)
+            } label: {
+                shortcut("Monthly report", icon: "envelope")
+            }
+            Button {
+                showingAddLesson = true
+            } label: {
+                shortcut("Log a lesson", icon: "square.and.pencil")
+            }
+        }
+        .buttonStyle(.plain)
+    }
+
+    func shortcut(_ title: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Image(systemName: icon).font(.title3)
+            Text(title).font(.rounded(.headline, .bold))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card()
+    }
+
+    var pastLessonsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Past lessons")
+                .font(.rounded(.headline, .heavy))
+
+            if pastLessons.isEmpty {
+                Text("Notes you write after lessons will appear here.")
+                    .font(.rounded(.subheadline, .medium))
+                    .foregroundStyle(Theme.secondaryText)
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(pastLessons) { lesson in
+                        NavigationLink {
+                            EditLessonView(lesson: lesson)
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text(lesson.date.formatted(.dateTime.month(.abbreviated).day()))
+                                    .font(.rounded(.caption, .bold))
+                                    .foregroundStyle(Theme.secondaryText)
+                                    .frame(width: 52, alignment: .leading)
+                                Text(lesson.topic)
+                                    .font(.rounded(.body, .bold))
+                                if !lesson.shareWithParents {
+                                    Image(systemName: "lock").font(.caption)
+                                }
+                                Spacer()
+                                if !lesson.worksheets.isEmpty {
+                                    Label("\(lesson.worksheets.count)", systemImage: "paperclip")
+                                        .font(.caption)
+                                }
+                                Text(lesson.rating)
+                                    .font(.rounded(.caption, .medium))
+                                    .foregroundStyle(Theme.secondaryText)
+                            }
+                            .padding(.vertical, 14)
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+
+                        if lesson.id != pastLessons.last?.id {
+                            Divider()
+                        }
+                    }
+                }
+                .padding(.horizontal, 18)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            }
+        }
     }
 }

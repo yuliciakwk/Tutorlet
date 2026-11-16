@@ -46,3 +46,31 @@ extension View {
         modifier(CardStyle(color: color))
     }
 }
+
+extension Font {
+    static func rounded(_ style: Font.TextStyle, _ weight: Font.Weight = .regular) -> Font {
+        .system(style, design: .rounded, weight: weight)
+    }
+}
+
+struct PrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.rounded(.body, .bold))
+            .foregroundStyle(.white)
+            .padding(.vertical, 14)
+            .background(Theme.ink, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
+
+struct SecondaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.rounded(.body, .bold))
+            .foregroundStyle(Theme.ink)
+            .padding(.vertical, 14)
+            .background(Theme.background, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .opacity(configuration.isPressed ? 0.8 : 1)
+    }
+}
