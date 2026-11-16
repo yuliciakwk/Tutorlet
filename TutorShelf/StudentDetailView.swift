@@ -92,7 +92,7 @@ struct StudentDetailView: View {
                 HStack {
                     Text("Next lesson")
                     Spacer()
-                    Text(lesson.date.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
+                    Text(lesson.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
                 }
                 .font(.rounded(.caption, .bold))
                 .foregroundStyle(Theme.secondaryText)

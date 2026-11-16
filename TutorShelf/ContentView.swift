@@ -7,6 +7,9 @@ struct ContentView: View {
     @Query(sort: \Student.name) private var students: [Student]
     @State private var showingAdd = false
     @State private var selected: Student?
+    @Query(filter: #Predicate<Lesson> { $0.isPlanned }, sort: \Lesson.date)
+    private var planned: [Lesson]
+    @State private var noteLesson: Lesson?
 
     var body: some View {
         if sizeClass == .compact {
@@ -35,10 +38,49 @@ struct ContentView: View {
             }
         }
     }
+    
+    var catchUp: [Lesson] {
+        planned.filter { $0.date < Date() }
+    }
 
+    var needsNote: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text("Needs a note")
+                .font(.rounded(.headline, .heavy))
+            ForEach(catchUp) { lesson in
+                Button {
+                    noteLesson = lesson
+                } label: {
+                    HStack {
+                        Text(lesson.student?.name ?? "Student")
+                            .font(.rounded(.body, .bold))
+                        Text(lesson.topic)
+                            .font(.rounded(.subheadline, .medium))
+                            .foregroundStyle(Theme.secondaryText)
+                            .lineLimit(1)
+                        Spacer()
+                        Text(lesson.date.formatted(.dateTime.month(.abbreviated).day()))
+                            .font(.rounded(.caption, .bold))
+                            .foregroundStyle(Theme.secondaryText)
+                    }
+                    .padding(.vertical, 10)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 14)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(hex: 0xFBEBCF), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+    }
+    
     var studentList: some View {
         ScrollView {
             VStack(spacing: 14) {
+                if !catchUp.isEmpty {
+                    needsNote
+                }
                 if students.isEmpty {
                     Text("Add your first student with the + button.")
                         .font(.rounded(.subheadline, .medium))
@@ -83,6 +125,14 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showingAdd) {
             AddStudentView()
+        }
+        .sheet(item: $noteLesson) { lesson in
+            NavigationStack {
+                EditLessonView(lesson: lesson)
+                    .toolbar {
+                        Button("Done") { noteLesson = nil }
+                    }
+            }
         }
     }
 
@@ -130,7 +180,7 @@ struct StudentCard: View {
                 }
                 Spacer()
                 if let nextLesson {
-                    Text(nextLesson.date.formatted(.dateTime.weekday(.abbreviated).hour().minute()))
+                    Text(nextLesson.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
                         .font(.rounded(.caption, .bold))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 6)

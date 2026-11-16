@@ -5,13 +5,8 @@ import SwiftData
 struct TutorShelfApp: App {
     var body: some Scene {
         WindowGroup {
-            TabView {
-                TodayView()
-                    .tabItem { Label("Today", systemImage: "calendar") }
-                ContentView()
-                    .tabItem { Label("Students", systemImage: "person.2") }
-            }
-            .preferredColorScheme(.light)
+            ContentView()
+                .preferredColorScheme(.light)
         }
         .modelContainer(for: Student.self)
     }
