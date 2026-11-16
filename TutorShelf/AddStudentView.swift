@@ -13,6 +13,8 @@ struct AddStudentView: View {
     @State private var interests = ""
     @State private var learningStyle = ""
     @State private var notes = ""
+    @State private var format = "In person"
+    @State private var lessonMinutes = 60
 
     var body: some View {
         NavigationStack {
@@ -21,6 +23,15 @@ struct AddStudentView: View {
                     TextField("Name", text: $name)
                     TextField("Grade", text: $grade)
                     TextField("Subjects", text: $subjects)
+                }
+                Section("Lessons") {
+                    Picker("Format", selection: $format) {
+                        Text("In person").tag("In person")
+                        Text("Online").tag("Online")
+                    }
+                    .pickerStyle(.segmented)
+
+                    Stepper("Length: \(lessonMinutes) min", value: $lessonMinutes, in: 30...120, step: 15)
                 }
                 Section("About them") {
                     TextField("Strengths", text: $strengths, axis: .vertical)
@@ -46,6 +57,9 @@ struct AddStudentView: View {
                             interests: interests, learningStyle: learningStyle,
                             notes: notes
                         )
+                        student.format = format
+                        student.lessonMinutes = lessonMinutes
+                        context.insert(student)
                         context.insert(student)
                         dismiss()
                     }

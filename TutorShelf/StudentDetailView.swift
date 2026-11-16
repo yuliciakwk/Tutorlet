@@ -86,6 +86,8 @@ struct StudentDetailView: View {
             Section("Basics") {
                 LabeledContent("Grade", value: student.grade)
                 LabeledContent("Subjects", value: student.subjects)
+                LabeledContent("Format", value: student.format)
+                LabeledContent("Lesson length", value: "\(student.lessonMinutes) min")
             }
             Section("Strengths") { Text(student.strengths) }
             Section("Focus areas") { Text(student.focusAreas) }
