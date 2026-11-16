@@ -36,6 +36,8 @@ struct SubjectsView: View {
 struct TrackCard: View {
     let track: Track
     @State private var newTopic = ""
+    @State private var drafting = false
+    @State private var errorMessage: String?
 
     let statuses = ["Not started", "In progress", "Mastered", "Needs review"]
 
@@ -112,11 +114,64 @@ struct TrackCard: View {
             }
             .padding(12)
             .background(Theme.background, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            Button {
+                Task { await draftTopics() }
+            } label: {
+                HStack(spacing: 8) {
+                    if drafting { ProgressView() }
+                    Text(drafting ? "Drafting…" : "Draft topics with AI")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(drafting)
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.rounded(.footnote, .medium))
+                    .foregroundStyle(.red)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .card()
     }
+    
+    func draftTopics() async {
+        guard let student = track.student else { return }
+        drafting = true
+        errorMessage = nil
+        defer { drafting = false }
 
+        let existing = sortedTopics.map { $0.title }.joined(separator: ", ")
+        let prompt = """
+        Grade: \(student.grade)
+        Subject: \(track.name) (\(track.kind))
+        Goal: \(track.goal.isEmpty ? "none given" : track.goal)
+        Strengths: \(student.strengths)
+        Focus areas: \(student.focusAreas)
+        Topics already in the roadmap: \(existing.isEmpty ? "none" : existing)
+
+        Suggest the next 6 topics for this roadmap, in teaching order.
+        """
+
+        do {
+            let text = try await ClaudeClient.ask(
+                system: "You are an experienced tutor planning lessons for one private student. Reply with only topic names, one per line, with no numbering, bullets or extra text. Keep each under 6 words.",
+                prompt: prompt
+            )
+            let titles = text
+                .split(separator: "\n")
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+            for title in titles {
+                track.topics.append(Topic(title: title, order: track.topics.count))
+            }
+        } catch {
+            errorMessage = "Couldn't draft topics. Check your connection and API key."
+            print(error)
+        }
+    }
+    
     func statusColor(_ status: String) -> Color {
         switch status {
         case "Mastered":
