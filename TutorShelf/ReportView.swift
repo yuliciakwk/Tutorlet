@@ -6,26 +6,47 @@ struct ReportView: View {
     @State private var draft = ""
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             HStack {
-                Button("Previous", systemImage: "chevron.left") { changeMonth(by: -1) }
-                    .labelStyle(.iconOnly)
+                Button {
+                    changeMonth(by: -1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Previous month")
+
                 Spacer()
                 Text(month.formatted(.dateTime.month(.wide).year()))
-                    .font(.headline)
+                    .font(.rounded(.headline, .heavy))
                 Spacer()
-                Button("Next", systemImage: "chevron.right") { changeMonth(by: 1) }
-                    .labelStyle(.iconOnly)
+
+                Button {
+                    changeMonth(by: 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("Next month")
             }
+            .padding(.horizontal, 8)
+            .background(Theme.color(for: student), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
 
             TextEditor(text: $draft)
-                .padding(8)
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(.quaternary))
+                .font(.rounded(.body))
+                .scrollContentBackground(.hidden)
 
-            ShareLink("Share report", item: draft)
-                .buttonStyle(.borderedProminent)
+                .padding(14)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+
+            ShareLink(item: draft) {
+                Text("Share report").frame(maxWidth: .infinity)
+            }
+            .buttonStyle(PrimaryButtonStyle())
         }
-        .padding()
+        .padding(20)
+        .background(Theme.background)
+        .foregroundStyle(Theme.ink)
         .navigationTitle("Monthly report")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { buildDraft() }
