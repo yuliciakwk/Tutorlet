@@ -43,6 +43,9 @@ struct AddStudentView: View {
                     TextField("Anything else", text: $notes, axis: .vertical)
                 }
             }
+            .font(.rounded(.body))
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("New student")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

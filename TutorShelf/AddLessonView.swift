@@ -75,6 +75,9 @@ struct AddLessonView: View {
                     }
                 }
             }
+            .font(.rounded(.body))
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("How did it go?")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

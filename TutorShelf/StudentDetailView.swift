@@ -43,6 +43,11 @@ struct StudentDetailView: View {
         .navigationTitle(student.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            NavigationLink {
+                EditStudentView(student: student)
+            } label: {
+                Label("Edit profile", systemImage: "pencil")
+            }
             Button("Plan lesson", systemImage: "calendar.badge.plus") {
                 showingPlanLesson = true
             }

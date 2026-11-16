@@ -67,6 +67,9 @@ struct EditLessonView: View {
                 }
             }
         }
+        .font(.rounded(.body))
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle("Edit lesson")
         .navigationBarTitleDisplayMode(.inline)
     }

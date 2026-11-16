@@ -14,12 +14,16 @@ enum Theme {
     ]
     static let colorOrder = ["peach", "lavender", "mint", "sky"]
 
-    static func color(for student: Student) -> Color {
-        if let chosen = studentColors[student.colorName] {
-            return chosen
+    static func colorName(for student: Student) -> String {
+        if studentColors[student.colorName] != nil {
+            return student.colorName
         }
         let total = student.name.unicodeScalars.reduce(0) { $0 + Int($1.value) }
-        return studentColors[colorOrder[total % colorOrder.count]] ?? card
+        return colorOrder[total % colorOrder.count]
+    }
+
+    static func color(for student: Student) -> Color {
+        studentColors[colorName(for: student)] ?? card
     }
 }
 

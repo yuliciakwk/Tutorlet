@@ -23,6 +23,9 @@ struct AddTrackView: View {
                     TextField("What are they working toward?", text: $goal, axis: .vertical)
                 }
             }
+            .font(.rounded(.body))
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("New subject")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
