@@ -27,6 +27,8 @@ struct ContentView: View {
                         ContentUnavailableView("Choose a student",
                             systemImage: "person.crop.circle",
                             description: Text("Pick a card to see their lessons and worksheets."))
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)   // new
+                            .background(Theme.background)
                     }
                 }
                 .id(selected.map { ObjectIdentifier($0) })
@@ -37,6 +39,12 @@ struct ContentView: View {
     var studentList: some View {
         ScrollView {
             VStack(spacing: 14) {
+                if students.isEmpty {
+                    Text("Add your first student with the + button.")
+                        .font(.rounded(.subheadline, .medium))
+                        .foregroundStyle(Theme.secondaryText)
+                        .padding(.top, 40)
+                }
                 ForEach(students) { student in
                     card(for: student)
                         .buttonStyle(.plain)
@@ -48,9 +56,10 @@ struct ContentView: View {
                         }
                 }
             }
+            .frame(maxWidth: .infinity)
             .padding(20)
         }
-        .background(Theme.background)
+        .background(sizeClass == .compact ? Theme.background : Theme.sidebar)
         .navigationTitle("Your students")
         .toolbar {
             Button("Add", systemImage: "plus") {

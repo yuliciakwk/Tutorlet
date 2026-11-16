@@ -25,6 +25,7 @@ enum Theme {
     static func color(for student: Student) -> Color {
         studentColors[colorName(for: student)] ?? card
     }
+    static let sidebar = Color(hex: 0xECEAF2)
 }
 
 extension Color {
