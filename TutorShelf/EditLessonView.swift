@@ -3,6 +3,7 @@ import SwiftData
 
 struct EditLessonView: View {
     @Bindable var lesson: Lesson
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         Form {
@@ -18,6 +19,7 @@ struct EditLessonView: View {
 
             TextField("Your note", text: $lesson.note, axis: .vertical)
             Toggle("Share with parents", isOn: $lesson.shareWithParents)
+
             if let student = lesson.student {
                 Section("Worksheets used") {
                     if student.worksheets.isEmpty {
@@ -43,6 +45,25 @@ struct EditLessonView: View {
                             }
                         }
                     }
+                }
+            }
+
+            if lesson.isPlanned {
+                Section {
+                    Button("Mark as taught") {
+                        lesson.isPlanned = false
+                        if let item = lesson.roadmapTopic {
+                            if lesson.rating == "Easy" {
+                                item.status = "Mastered"
+                            } else if lesson.rating == "Okay" {
+                                item.status = "In progress"
+                            } else {
+                                item.status = "Needs review"
+                            }
+                        }
+                        dismiss()
+                    }
+                    .disabled(lesson.rating.isEmpty)
                 }
             }
         }

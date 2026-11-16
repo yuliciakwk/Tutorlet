@@ -5,6 +5,7 @@ import UniformTypeIdentifiers
 struct StudentDetailView: View {
     let student: Student
     @State private var showingAddLesson = false
+    @State private var showingPlanLesson = false
     @State private var showingImporter = false
     @State private var previewURL: URL?
     @State private var showingAddTrack = false
@@ -23,7 +24,7 @@ struct StudentDetailView: View {
                     } label: {
                         VStack(alignment: .leading) {
                             Text(track.name).font(.headline)
-                            if let next = nextTopic(for: track) {
+                            if let next = track.nextTopic {
                                 Text("\(track.kind) · Next: \(next.title)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
@@ -53,7 +54,7 @@ struct StudentDetailView: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 Spacer()
-                                Text(lesson.rating)
+                                Text(lesson.isPlanned ? "Planned" : lesson.rating)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
@@ -94,9 +95,15 @@ struct StudentDetailView: View {
         }
         .navigationTitle(student.name)
         .toolbar {
+            Button("Plan lesson", systemImage: "calendar.badge.plus") {
+                showingPlanLesson = true
+            }
             Button("Add lesson", systemImage: "square.and.pencil") {
                 showingAddLesson = true
             }
+        }
+        .sheet(isPresented: $showingPlanLesson) {
+            PlanLessonView(student: student)
         }
         .sheet(isPresented: $showingAddLesson) {
             AddLessonView(student: student)
@@ -112,6 +119,7 @@ struct StudentDetailView: View {
         }
         .quickLookPreview($previewURL)
     }
+
     func importFile(_ url: URL) {
         guard url.startAccessingSecurityScopedResource() else { return }
         defer { url.stopAccessingSecurityScopedResource() }
@@ -120,12 +128,7 @@ struct StudentDetailView: View {
         let worksheet = Worksheet(title: url.lastPathComponent, fileData: data)
         student.worksheets.append(worksheet)
     }
-    func nextTopic(for track: Track) -> Topic? {
-        let topics = track.topics.sorted { a, b in a.order < b.order }
-        return topics.first { $0.status == "Needs review" }
-            ?? topics.first { $0.status == "In progress" }
-            ?? topics.first { $0.status == "Not started" }
-    }
+
     func open(_ worksheet: Worksheet) {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(worksheet.title)

@@ -6,13 +6,8 @@
 	objectVersion = 110;
 	objects = {
 
-/* Begin PBXBuildFile section */
-		2D7A814330AA6C3B002D1D0E /* ReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D7A814230AA6C3B002D1D0E /* ReportView.swift */; };
-/* End PBXBuildFile section */
-
 /* Begin PBXFileReference section */
 		2D7A812A30AA513B002D1D0E /* TutorShelf.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TutorShelf.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		2D7A814230AA6C3B002D1D0E /* ReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -35,7 +30,6 @@
 		2D7A812130AA513B002D1D0E = {
 			isa = PBXGroup;
 			children = (
-				2D7A814230AA6C3B002D1D0E /* ReportView.swift */,
 				2D7A812C30AA513B002D1D0E /* TutorShelf */,
 				2D7A812B30AA513B002D1D0E /* Products */,
 			);
@@ -116,7 +110,6 @@
 		2D7A812630AA513B002D1D0E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
-				2D7A814330AA6C3B002D1D0E /* ReportView.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */

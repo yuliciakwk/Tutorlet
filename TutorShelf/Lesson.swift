@@ -10,6 +10,7 @@ class Lesson {
     var shareWithParents: Bool = true
     var student: Student?
     var roadmapTopic: Topic?
+    var isPlanned: Bool = false
     
     @Relationship(deleteRule: .nullify, inverse: \Worksheet.lesson)
     var worksheets: [Worksheet] = []

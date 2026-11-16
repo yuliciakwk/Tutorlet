@@ -1,10 +1,3 @@
-//
-//  TutorShelfApp.swift
-//  TutorShelf
-//
-//  Created by yulicia kwok on 2026-11-15.
-//
-
 import SwiftUI
 import SwiftData
 
@@ -12,7 +5,12 @@ import SwiftData
 struct TutorShelfApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TabView {
+                TodayView()
+                    .tabItem { Label("Today", systemImage: "calendar") }
+                ContentView()
+                    .tabItem { Label("Students", systemImage: "person.2") }
+            }
         }
         .modelContainer(for: Student.self)
     }

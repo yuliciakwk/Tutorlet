@@ -39,7 +39,7 @@ struct ReportView: View {
     func buildDraft() {
         let lessons = student.lessons
             .filter { lesson in
-                lesson.shareWithParents &&
+                lesson.shareWithParents && !lesson.isPlanned &&
                 Calendar.current.isDate(lesson.date, equalTo: month, toGranularity: .month)
             }
             .sorted { $0.date < $1.date }
