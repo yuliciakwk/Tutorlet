@@ -23,9 +23,15 @@ struct StudentDetailView: View {
                     } label: {
                         VStack(alignment: .leading) {
                             Text(track.name).font(.headline)
-                            Text(track.kind)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                            if let next = nextTopic(for: track) {
+                                Text("\(track.kind) · Next: \(next.title)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                Text(track.kind)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -114,7 +120,12 @@ struct StudentDetailView: View {
         let worksheet = Worksheet(title: url.lastPathComponent, fileData: data)
         student.worksheets.append(worksheet)
     }
-
+    func nextTopic(for track: Track) -> Topic? {
+        let topics = track.topics.sorted { a, b in a.order < b.order }
+        return topics.first { $0.status == "Needs review" }
+            ?? topics.first { $0.status == "In progress" }
+            ?? topics.first { $0.status == "Not started" }
+    }
     func open(_ worksheet: Worksheet) {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent(worksheet.title)

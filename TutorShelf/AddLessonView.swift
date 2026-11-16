@@ -11,11 +11,34 @@ struct AddLessonView: View {
     @State private var note = ""
     @State private var shareWithParents = true
     @State private var selectedWorksheets: [Worksheet] = []
-
+    @State private var selectedIndex = -1
+    
+    
+    var roadmapTopics: [Topic] {
+        student.tracks.flatMap { track in
+            track.topics.sorted { a, b in a.order < b.order }
+        }
+    }
+    var selectedTopic: Topic? {
+        roadmapTopics.indices.contains(selectedIndex) ? roadmapTopics[selectedIndex] : nil
+    }
     var body: some View {
         NavigationStack {
             Form {
                 DatePicker("Date", selection: $date, displayedComponents: .date)
+                if !roadmapTopics.isEmpty {
+                    Picker("Roadmap topic", selection: $selectedIndex) {
+                        Text("None").tag(-1)
+                        ForEach(Array(roadmapTopics.enumerated()), id: \.offset) { index, item in
+                            Text(item.title).tag(index)
+                        }
+                    }
+                    .onChange(of: selectedIndex) {
+                        if let selectedTopic {
+                            topic = selectedTopic.title
+                        }
+                    }
+                }
                 TextField("What you covered", text: $topic)
 
                 Picker("It was", selection: $rating) {
@@ -65,6 +88,16 @@ struct AddLessonView: View {
                         student.lessons.append(lesson)
                         for worksheet in selectedWorksheets {
                             worksheet.lesson = lesson
+                        }
+                        if let selectedTopic {
+                            lesson.roadmapTopic = selectedTopic
+                            if rating == "Easy" {
+                                selectedTopic.status = "Mastered"
+                            } else if rating == "Okay" {
+                                selectedTopic.status = "In progress"
+                            } else {
+                                selectedTopic.status = "Needs review"
+                            }
                         }
                         dismiss()
                     }

@@ -44,6 +44,21 @@ struct ContentView: View {
                         .sheet(isPresented: $showingAdd) {
                             AddStudentView()
                         }
+            Button("Sample", systemImage: "wand.and.stars") {
+                let student = Student(name: "Sample Student", grade: "Grade 2",
+                                      subjects: "English",
+                                      strengths: "Math, quick thinker",
+                                      focusAreas: "Reading stamina",
+                                      interests: "Games, ninjas",
+                                      learningStyle: "Competitive, short focus")
+                let track = Track(name: "English", kind: "Curriculum")
+                context.insert(student)
+                student.tracks.append(track)
+                let titles = ["Capital letters", "Sentence building", "Describing words", "Short stories"]
+                for (index, title) in titles.enumerated() {
+                    track.topics.append(Topic(title: title, order: index))
+                }
+            }
         }
     }
 }
