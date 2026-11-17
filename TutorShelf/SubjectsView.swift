@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct SubjectsView: View {
     let student: Student
@@ -38,11 +39,18 @@ struct TrackCard: View {
     @State private var newTopic = ""
     @State private var drafting = false
     @State private var errorMessage: String?
+    @Environment(\.modelContext) private var modelContext
 
     let statuses = ["Not started", "In progress", "Mastered", "Needs review"]
 
     var sortedTopics: [Topic] {
         track.topics.sorted { $0.order < $1.order }
+    }
+    
+    var draftButtonTitle: String {
+        if track.topics.isEmpty { return "Draft topics with AI" }
+        let hasUnstarted = track.topics.contains { $0.status == "Not started" && $0.lessons.isEmpty }
+        return hasUnstarted ? "Redraft unstarted topics" : "Draft next topics"
     }
 
     var masteredCount: Int {
@@ -73,6 +81,8 @@ struct TrackCard: View {
             VStack(spacing: 0) {
                 ForEach(sortedTopics) { topic in
                     HStack(spacing: 8) {
+                        StepNumber(number: (sortedTopics.firstIndex { $0.id == topic.id } ?? 0) + 1,
+                                   status: topic.status)
                         Text(topic.title)
                             .font(.rounded(.body, .bold))
                         if track.nextTopic === topic {
@@ -95,9 +105,13 @@ struct TrackCard: View {
                         }
                     }
                     .padding(.vertical, 12)
+                    .contextMenu {
+                        Button("Delete topic", role: .destructive) { delete(topic) }
+                    }
 
                     if topic.id != sortedTopics.last?.id {
-                        Divider()
+                        Divider().padding(.leading, 40)
+                        
                     }
                 }
             }
@@ -119,10 +133,11 @@ struct TrackCard: View {
             } label: {
                 HStack(spacing: 8) {
                     if drafting { ProgressView() }
-                    Text(drafting ? "Drafting…" : "Draft topics with AI")
+                    Text(draftButtonTitle)
                 }
                 .frame(maxWidth: .infinity)
             }
+            
             .buttonStyle(SecondaryButtonStyle())
             .disabled(drafting)
 
@@ -141,17 +156,32 @@ struct TrackCard: View {
         drafting = true
         errorMessage = nil
         defer { drafting = false }
+        
+        let kept = sortedTopics.filter { $0.status != "Not started" || !$0.lessons.isEmpty }
+        let replaced = sortedTopics.filter { $0.status == "Not started" && $0.lessons.isEmpty }
+        let keptList = kept.map { "\($0.title) (\($0.status))" }.joined(separator: ", ")
+        let replacedList = replaced.map(\.title).joined(separator: ", ")
+        let target = track.kind == "Curriculum" ? 12 : 8
+        let remaining = max(6, target - kept.count)
+        let count = "\(remaining)"
 
-        let existing = sortedTopics.map { $0.title }.joined(separator: ", ")
         let prompt = """
         Grade: \(student.grade)
         Subject: \(track.name) (\(track.kind))
         Goal: \(track.goal.isEmpty ? "none given" : track.goal)
-        Strengths: \(student.strengths)
-        Focus areas: \(student.focusAreas)
-        Topics already in the roadmap: \(existing.isEmpty ? "none" : existing)
+        Student's strengths: \(student.strengths)
+        Student's focus areas: \(student.focusAreas)
+        Already started or mastered (keep these, continue after them): \(keptList.isEmpty ? "none" : keptList)
+        Previous suggestions the tutor wants replaced (suggest different ones): \(replacedList.isEmpty ? "none" : replacedList)
 
-        Suggest the next 6 topics for this roadmap, in teaching order.
+        Write a roadmap of \(count) topics for \(track.name) only.
+        - Every topic must belong to \(track.name). Strengths and focus areas may mention other subjects; ignore anything that isn't \(track.name).
+        - For a curriculum, follow the BC curriculum for this grade and cover the rest of the school year.
+        - For a goal, list the steps needed to reach the goal, and nothing beyond it.
+        - Put them in teaching order: each topic builds on the ones before it, starting where the kept topics leave off.
+        - Give extra attention to the focus areas that belong to \(track.name).
+        - After every 3 or 4 new topics, add a checkpoint topic named "Review: …" that revisits what came before it.
+        - If 3 or more of the kept topics come after the last "Review:" topic, start with a review of those kept topics before anything new.
         """
 
         do {
@@ -163,12 +193,35 @@ struct TrackCard: View {
                 .split(separator: "\n")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
+            removeUnstartedTopics()
             for title in titles {
                 track.topics.append(Topic(title: title, order: track.topics.count))
             }
         } catch {
             errorMessage = "Couldn't draft topics. Check your connection and API key."
             print(error)
+        }
+    }
+    
+    private func delete(_ topic: Topic) {
+        track.topics.removeAll { $0 === topic }
+        modelContext.delete(topic)
+        renumber()
+    }
+    
+    private func removeUnstartedTopics() {
+        let unstarted = track.topics.filter { $0.status == "Not started" && $0.lessons.isEmpty }
+        for topic in unstarted {
+            track.topics.removeAll { $0 === topic }
+            modelContext.delete(topic)
+        }
+        renumber()
+    }
+
+    private func renumber() {
+        let sorted = track.topics.sorted { $0.order < $1.order }
+        for (index, topic) in sorted.enumerated() {
+            topic.order = index
         }
     }
     
@@ -182,6 +235,37 @@ struct TrackCard: View {
             return Color(hex: 0xFBEBCF)
         default:
             return Theme.background
+        }
+    }
+}
+
+struct StepNumber: View {
+    let number: Int
+    let status: String
+
+    var body: some View {
+        ZStack {
+            Circle().fill(fill)
+            if status == "Mastered" {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.white)
+            } else {
+                Text("\(number)")
+                    .font(.rounded(.caption))
+                    .bold()
+                    .foregroundStyle(status == "Not started" ? Theme.secondaryText : .white)
+            }
+        }
+        .frame(width: 28, height: 28)
+    }
+
+    var fill: Color {
+        switch status {
+        case "Mastered": Theme.ink
+        case "In progress": Color(hex: 0x6C4AB6)
+        case "Needs review": Color(hex: 0xE8A33D)
+        default: Theme.sidebar
         }
     }
 }

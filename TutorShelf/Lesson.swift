@@ -11,6 +11,7 @@ class Lesson {
     var student: Student?
     var roadmapTopic: Topic?
     var isPlanned: Bool = false
+    var focus: String = ""
     
     @Relationship(deleteRule: .nullify, inverse: \Worksheet.lesson)
     var worksheets: [Worksheet] = []

@@ -9,6 +9,7 @@ struct EditLessonView: View {
         Form {
             DatePicker("Date", selection: $lesson.date, displayedComponents: .date)
             TextField("What you covered", text: $lesson.topic)
+            TextField("Focus for this lesson", text: $lesson.focus, axis: .vertical)
 
             Picker("It was", selection: $lesson.rating) {
                 Text("Easy").tag("Easy")

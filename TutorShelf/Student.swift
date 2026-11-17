@@ -56,4 +56,13 @@ extension Student {
 
         return Calendar.current.nextDate(after: start, matching: match, matchingPolicy: .nextTime)
     }
+    static func level(forGrade grade: String) -> String {
+        let digits = grade.filter { $0.isNumber }
+        guard let number = Int(digits) else { return "Primary" }   // "K" or blank
+        switch number {
+        case ...3: return "Primary"
+        case 4...7: return "Intermediate"
+        default: return "Secondary"
+        }
+    }
 }

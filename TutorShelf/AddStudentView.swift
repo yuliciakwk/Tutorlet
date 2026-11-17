@@ -87,6 +87,7 @@ struct AddStudentView: View {
                         student.lessonTime = lessonTime
                         context.insert(student)
                         dismiss()
+                        student.level = Student.level(forGrade: student.grade)
                     }
                     .disabled(name.isEmpty)
                 }

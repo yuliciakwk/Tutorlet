@@ -7,6 +7,7 @@ struct PlanLessonView: View {
     @State private var date = Date()
     @State private var chosen: Topic?
     @State private var customTopic = ""
+    @State private var focus = ""
 
     var roadmapTopics: [Topic] {
         student.tracks.flatMap { track in
@@ -159,6 +160,11 @@ struct PlanLessonView: View {
                 .font(.rounded(.body))
                 .padding(14)
                 .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            TextField("Focus for this lesson (optional), like \"test on Friday, pages 112–130\"",
+                      text: $focus, axis: .vertical)
+                .font(.rounded(.body))
+                .padding(14)
+                .background(Theme.card, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
     }
 
@@ -180,6 +186,7 @@ struct PlanLessonView: View {
         let lesson = Lesson(date: date, topic: topicTitle)
         lesson.isPlanned = true
         lesson.rating = ""
+        lesson.focus = focus
         student.lessons.append(lesson)
         lesson.roadmapTopic = customTopic.isEmpty ? chosen : nil
         dismiss()

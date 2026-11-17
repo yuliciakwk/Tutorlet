@@ -44,6 +44,10 @@ struct WorksheetsView: View {
                     Text("Preview sample worksheet").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                
+                NavigationLink("Test AI pack") {
+                    GeneratorTestView(student: student)
+                }
             }
             .padding(20)
         }
