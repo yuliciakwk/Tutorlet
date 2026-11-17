@@ -17,6 +17,8 @@ class Student {
     var lessonWeekday: Int = 0
     var lessonTime: Date = Date()
     var reportOverviews: [String: String] = [:]
+    var level: String = "Intermediate"
+    var worksheetStyle: String = "Classic"
     
     @Relationship(deleteRule: .cascade, inverse: \Lesson.student)
     var lessons: [Lesson] = []

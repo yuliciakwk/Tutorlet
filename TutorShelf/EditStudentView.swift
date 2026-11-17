@@ -51,6 +51,19 @@ struct EditStudentView: View {
                     DatePicker("Time", selection: $student.lessonTime, displayedComponents: .hourAndMinute)
                 }
             }
+            
+            Section("Worksheets") {
+                Picker("Level", selection: $student.level) {
+                    Text("Primary (K–3)").tag("Primary")
+                    Text("Intermediate (4–7)").tag("Intermediate")
+                    Text("Secondary (8–12)").tag("Secondary")
+                }
+                Picker("Style", selection: $student.worksheetStyle) {
+                    Text("Classic").tag("Classic")
+                    Text("Cozy").tag("Cozy")
+                    Text("Game").tag("Game")
+                }
+            }
 
             Section("About them") {
                 TextField("Strengths", text: $student.strengths, axis: .vertical)
