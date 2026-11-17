@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 
 @main
-struct TutorShelfApp: App {
+struct Tutorlet: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
