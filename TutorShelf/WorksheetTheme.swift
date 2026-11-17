@@ -12,13 +12,25 @@ struct WorksheetTheme {
     var fontDesign: Font.Design
     var boxRadius: CGFloat
     var selfCheck: String
+    var headerKind: String
 
     func color(at index: Int) -> Color {
         partColors[index % partColors.count]
     }
 
     func font(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: fontDesign)
+        if fontDesign == .default {
+            return .system(size: size, weight: weight, design: .serif)
+        }
+        let name: String
+        switch weight {
+        case .heavy, .black: name = "Poppins-ExtraBold"
+        case .bold: name = "Poppins-Bold"
+        case .semibold: name = "Poppins-SemiBold"
+        case .medium: name = "Poppins-Medium"
+        default: name = "Poppins-Regular"
+        }
+        return .custom(name, size: size)
     }
 
     static func forStyle(_ style: String) -> WorksheetTheme {
@@ -40,7 +52,8 @@ struct WorksheetTheme {
         partLabel: "Level",
         fontDesign: .rounded,
         boxRadius: 12,
-        selfCheck: "stars"
+        selfCheck: "stars",
+        headerKind: "band"
     )
 
     static let cozy = WorksheetTheme(
@@ -54,7 +67,8 @@ struct WorksheetTheme {
         partLabel: "Chapter",
         fontDesign: .rounded,
         boxRadius: 16,
-        selfCheck: "hearts"
+        selfCheck: "hearts",
+        headerKind: "soft"
     )
 
     static let classic = WorksheetTheme(
@@ -68,6 +82,7 @@ struct WorksheetTheme {
         partLabel: "Part",
         fontDesign: .default,
         boxRadius: 8,
-        selfCheck: "reflection"
+        selfCheck: "none",
+        headerKind: "plain"
     )
 }

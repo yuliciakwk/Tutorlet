@@ -68,8 +68,18 @@ struct EditStudentView: View {
             Section("About them") {
                 TextField("Strengths", text: $student.strengths, axis: .vertical)
                 TextField("Focus areas", text: $student.focusAreas, axis: .vertical)
-                TextField("Interests", text: $student.interests, axis: .vertical)
-                TextField("Learning style", text: $student.learningStyle, axis: .vertical)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Interests").font(.rounded(.subheadline, .bold))
+                    ChipPicker(options: ProfileOptions.interests, text: $student.interests)
+                    TextField("Anything else they love", text: $student.interests, axis: .vertical)
+                }
+                .padding(.vertical, 6)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Learning style").font(.rounded(.subheadline, .bold))
+                    ChipPicker(options: ProfileOptions.learningStyles, text: $student.learningStyle)
+                    TextField("Anything else about how they learn", text: $student.learningStyle, axis: .vertical)
+                }
+                .padding(.vertical, 6)
             }
 
             Section("Notes") {

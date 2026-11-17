@@ -7,6 +7,11 @@ struct WorksheetPack: Codable {
     var buildingOn: String?
     var parts: [WorksheetPart]
     var answerKey: [String]
+    var partLabel: String?
+    var mascot: String?
+    var timed: Bool?
+    var reward: String?
+    var certificateTitle: String?
 }
 
 struct WorksheetPart: Codable {
@@ -64,6 +69,7 @@ extension WorksheetPack {
                 ]
             )
         ],
-        answerKey: ["5", "3", "1/2", "2 slices"]
+        answerKey: ["5", "3", "1/2", "2 slices"],
+        certificateTitle: "Fraction Pizza Champion"
     )
 }

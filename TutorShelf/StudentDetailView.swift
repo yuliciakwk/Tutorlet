@@ -81,6 +81,16 @@ struct StudentDetailView: View {
                     .foregroundStyle(Theme.secondaryText)
                     .padding(.top, 4)
             }
+            if student.interests.isEmpty || student.learningStyle.isEmpty {
+                NavigationLink {
+                    EditStudentView(student: student)
+                } label: {
+                    Label("Add interests and learning style to personalise worksheets", systemImage: "sparkles")
+                        .font(.rounded(.footnote, .bold))
+                }
+                .buttonStyle(.plain)
+                .padding(.top, 6)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .card(Theme.color(for: student))
