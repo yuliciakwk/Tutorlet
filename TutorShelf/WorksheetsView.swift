@@ -37,6 +37,13 @@ struct WorksheetsView: View {
                     Text("Add worksheet").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(PrimaryButtonStyle())
+                
+                Button {
+                    previewURL = WorksheetPDF.make(pack: .sample, style: student.worksheetStyle, grade: student.grade)
+                } label: {
+                    Text("Preview sample worksheet").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
             .padding(20)
         }
