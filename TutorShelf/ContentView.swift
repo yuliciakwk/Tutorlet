@@ -108,7 +108,7 @@ struct ContentView: View {
                 showingAdd = true
             }
             Button("Sample", systemImage: "wand.and.stars") {
-                let student = Student(name: "Sample Student", grade: "Grade 2",
+                let student = Student(name: "Sample Student", grade: "2",
                                       subjects: "English",
                                       strengths: "Math, quick thinker",
                                       focusAreas: "Reading stamina",
@@ -174,37 +174,34 @@ struct StudentCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(student.name)
                         .font(.rounded(.title2, .heavy))
-                    Text("\(student.grade) · \(student.format)")
+                    Text("Grade \(student.grade) · \(student.format)")
                         .font(.rounded(.subheadline, .medium))
                         .foregroundStyle(Theme.secondaryText)
                 }
-                Spacer()
-                if let nextLesson {
-                    Text(nextLesson.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()))
-                        .font(.rounded(.caption, .bold))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(.white, in: Capsule())
-                }
             }
 
-            HStack {
+            VStack(alignment: .leading, spacing: 6) {
                 if let nextLesson {
-                    Text(nextLesson.topic)
-                        .font(.rounded(.body, .bold))
-                    Spacer()
-                    Text(nextLesson.worksheets.isEmpty ? "No worksheet yet" : "Worksheet ready")
+                    Text("\(nextLesson.date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())) · \(nextLesson.date.formatted(date: .omitted, time: .shortened))")
                         .font(.rounded(.caption, .bold))
+                        .foregroundStyle(Theme.secondaryText)
+                        .textCase(.uppercase)
+                    Text(nextLesson.topic)
+                        .font(.rounded(.subheadline, .bold))
+                        .lineLimit(2)
+                    Label(nextLesson.worksheets.isEmpty ? "No worksheet yet" : "Worksheet ready",
+                          systemImage: nextLesson.worksheets.isEmpty ? "doc" : "checkmark.circle.fill")
+                        .font(.rounded(.caption, .medium))
                         .foregroundStyle(Theme.secondaryText)
                 } else {
                     Text("No lesson planned")
-                        .font(.rounded(.body, .medium))
+                        .font(.rounded(.subheadline, .medium))
                         .foregroundStyle(Theme.secondaryText)
-                    Spacer()
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(14)
-            .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .foregroundStyle(Theme.ink)
         .card(Theme.color(for: student))

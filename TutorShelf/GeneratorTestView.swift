@@ -26,10 +26,14 @@ struct GeneratorTestView: View {
                     .font(.rounded(.subheadline))
                     .foregroundStyle(Theme.secondaryText)
 
-                Button(working ? "Working…" : (pdf == nil ? "Generate pack" : "Redo")) {
+                Button {
                     Task { await generate(for: lesson) }
+                } label: {
+                    Text(working ? "Working…" : (pdf == nil ? "Generate pack" : "Redo"))
+                        .padding(.horizontal, 20)
                 }
                 .buttonStyle(PrimaryButtonStyle())
+                .padding(.horizontal, 4)
                 .disabled(working)
             } else {
                 Text("Plan a lesson for this student first.")
@@ -57,6 +61,7 @@ struct GeneratorTestView: View {
             }
         }
         .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(Theme.background)
         .navigationTitle("Test AI pack")
     }

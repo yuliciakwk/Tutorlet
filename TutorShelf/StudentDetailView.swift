@@ -72,7 +72,7 @@ struct StudentDetailView: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(student.name)
                 .font(.rounded(.largeTitle, .heavy))
-            Text("\(student.grade) · \(student.subjects) · \(student.format)")
+            Text("Grade \(student.grade) · \(student.subjects) · \(student.format)")
                 .font(.rounded(.subheadline, .medium))
                 .foregroundStyle(Theme.secondaryText)
             if !tailoredTo.isEmpty {
