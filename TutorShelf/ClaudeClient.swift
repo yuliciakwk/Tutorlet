@@ -1,7 +1,13 @@
 import Foundation
 
-enum ClaudeError: Error {
+enum ClaudeError: LocalizedError {
     case badResponse(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .badResponse(let details): "Claude returned an error: \(details)"
+        }
+    }
 }
 
 enum ClaudeClient {
