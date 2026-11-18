@@ -2,7 +2,7 @@
 
 **AI lesson planning for private tutors.** Tutorlet is an iPad, iPhone and Mac app that keeps each student's profile, curriculum roadmap and lesson notes in one place, and turns the next lesson into a tailored, print-ready worksheet pack.
 
-▶️ **[Watch the 77-second demo](YOUTUBE_LINK)**
+[[![Watch the 77-second demo](https://img.youtube.com/vi/oCL9s3hT5sA/hqdefault.jpg)](https://youtu.be/oCL9s3hT5sA)
 
 <p>
   <img src="docs/roadmap.png" width="49%" alt="A student's curriculum roadmap with numbered topics and review checkpoints">
