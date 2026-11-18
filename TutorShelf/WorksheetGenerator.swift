@@ -84,12 +84,12 @@ enum WorksheetGenerator {
         try await withThrowingTaskGroup(of: (Int, String).self) { group in
             group.addTask {
                 (0, try await ClaudeClient.ask(system: system, prompt: "STEP: FRONT\n\n" + context,
-                                               maxTokens: 8000, timeout: 240))
+                                               maxTokens: 16000, timeout: 240))
             }
             for number in 1...plan.parts.count {
                 group.addTask {
                     (number, try await ClaudeClient.ask(system: system, prompt: "STEP: PART \(number)\n\n" + context,
-                                                        maxTokens: 8000, timeout: 240))
+                                                        maxTokens: 16000, timeout: 240))
                 }
             }
             for try await (index, reply) in group {
@@ -101,8 +101,8 @@ enum WorksheetGenerator {
         // If a reply can't be read, ask for that one piece again before giving up.
         func read<T: Decodable>(_ type: T.Type, index: Int, step: String, prompt: String) async throws -> T {
             if let value = try? decode(T.self, from: replies[index] ?? "", step: step) { return value }
-            progress("Rewriting the \(step)…")
-            let again = try await ClaudeClient.ask(system: system, prompt: prompt, maxTokens: 8000, timeout: 240)
+            progress("Rewriting \(step)…")
+            let again = try await ClaudeClient.ask(system: system, prompt: prompt, maxTokens: 16000, timeout: 240)
             return try decode(T.self, from: again, step: step)
         }
 

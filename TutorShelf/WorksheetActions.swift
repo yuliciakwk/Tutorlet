@@ -9,7 +9,10 @@ extension Worksheet {
     }
 
     func temporaryURL() -> URL {
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent(title)
+        var url = FileManager.default.temporaryDirectory.appendingPathComponent(title)
+        if url.pathExtension.isEmpty {
+            url = url.appendingPathExtension("pdf")
+        }
         try? fileData.write(to: url)
         return url
     }
