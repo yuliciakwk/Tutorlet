@@ -129,9 +129,6 @@ struct ContentView: View {
         .sheet(item: $noteLesson) { lesson in
             NavigationStack {
                 EditLessonView(lesson: lesson)
-                    .toolbar {
-                        Button("Done") { noteLesson = nil }
-                    }
             }
         }
     }

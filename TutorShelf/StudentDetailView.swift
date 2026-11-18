@@ -8,12 +8,21 @@ struct StudentDetailView: View {
     @State private var showingPlanLesson = false
     @State private var showingImporter = false
     @State private var previewURL: URL?
+    @State private var generatingFor: Lesson?
 
     var nextLesson: Lesson? {
         student.lessons
             .filter { $0.isPlanned }
             .sorted { $0.date < $1.date }
             .first
+    }
+
+    // Planned lessons after the next one, so worksheets can be made ahead.
+    var laterLessons: [Lesson] {
+        Array(student.lessons
+            .filter { $0.isPlanned }
+            .sorted { $0.date < $1.date }
+            .dropFirst())
     }
 
     var pastLessons: [Lesson] {
@@ -33,6 +42,9 @@ struct StudentDetailView: View {
             VStack(alignment: .leading, spacing: 18) {
                 header
                 nextLessonCard
+                if !laterLessons.isEmpty {
+                    upcomingSection
+                }
                 shortcuts
                 pastLessonsSection
             }
@@ -66,6 +78,9 @@ struct StudentDetailView: View {
             }
         }
         .quickLookPreview($previewURL)
+        .sheet(item: $generatingFor) { lesson in
+            GenerateWorksheetView(lesson: lesson)
+        }
     }
 
     var header: some View {
@@ -120,11 +135,18 @@ struct StudentDetailView: View {
                     .buttonStyle(PrimaryButtonStyle())
                 } else {
                     Button {
-                        showingImporter = true
+                        generatingFor = lesson
                     } label: {
-                        Text("Attach worksheet").frame(maxWidth: .infinity)
+                        Label("Generate worksheet", systemImage: "sparkles").frame(maxWidth: .infinity)
                     }
                     .buttonStyle(PrimaryButtonStyle())
+
+                    Button {
+                        showingImporter = true
+                    } label: {
+                        Text("Attach my own").frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(SecondaryButtonStyle())
                 }
 
                 NavigationLink {
@@ -146,6 +168,58 @@ struct StudentDetailView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .card()
+    }
+
+    var upcomingSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Coming up")
+                .font(.rounded(.headline, .heavy))
+
+            VStack(spacing: 0) {
+                ForEach(laterLessons) { lesson in
+                    HStack(spacing: 12) {
+                        Text(lesson.date.formatted(.dateTime.month(.abbreviated).day()))
+                            .font(.rounded(.caption, .bold))
+                            .foregroundStyle(Theme.secondaryText)
+                            .frame(width: 52, alignment: .leading)
+
+                        NavigationLink {
+                            EditLessonView(lesson: lesson)
+                        } label: {
+                            Text(lesson.topic)
+                                .font(.rounded(.body, .bold))
+                                .lineLimit(1)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .contentShape(Rectangle())
+                        }
+
+                        if let worksheet = lesson.worksheets.first {
+                            Button {
+                                previewURL = worksheet.temporaryURL()
+                            } label: {
+                                Label("Ready", systemImage: "checkmark.circle.fill")
+                            }
+                            .foregroundStyle(Theme.secondaryText)
+                        } else {
+                            Button {
+                                generatingFor = lesson
+                            } label: {
+                                Label("Generate", systemImage: "sparkles")
+                            }
+                        }
+                    }
+                    .font(.rounded(.subheadline, .bold))
+                    .buttonStyle(.plain)
+                    .padding(.vertical, 14)
+
+                    if lesson.id != laterLessons.last?.id {
+                        Divider()
+                    }
+                }
+            }
+            .padding(.horizontal, 18)
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        }
     }
 
     var shortcuts: some View {

@@ -42,12 +42,34 @@ enum WorksheetHTML {
         .page { margin: 0 !important; box-shadow: none !important; }
         </style>
         </head>
-        <body class="theme-\(style)" style="\(palette(pack.palette))">
+        <body class="theme-\(style)" style="\(palette(pack.plan.palette))">
         \(symbols)
         \(pages)
+        \(answerKey(pack: pack, style: style))
         </body>
         </html>
         """
+    }
+
+    // The app writes the answer key page itself, from each part's answers.
+    static func answerKey(pack: GeneratedPack, style: String) -> String {
+        let label = pack.plan.partLabel ?? "Part"
+        let sections = zip(pack.plan.parts, pack.answers).enumerated().map { index, item in
+            let (part, answers) = item
+            let items = answers.map { "<li>\(escape($0))</li>" }.joined()
+            return "<h4>\(escape(label)) \(index + 1) · \(escape(part.title))</h4><ol>\(items)</ol>"
+        }.joined()
+
+        let heading = style == "classic"
+            ? "<h1 class=\"title\">Answer key</h1><p class=\"sub\">For the tutor · \(escape(pack.plan.title))</p><div class=\"rule\"></div>"
+            : "<h2>Answer key</h2><p class=\"for\">For the tutor · \(escape(pack.plan.title))</p>"
+        return "<section class=\"page c1\"><div class=\"akey\">\(heading)\(sections)</div></section>"
+    }
+
+    static func escape(_ text: String) -> String {
+        text.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
     }
 
     // Inline styles may only position or size things: left, right, top, bottom, width, height, flex.

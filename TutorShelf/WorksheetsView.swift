@@ -45,9 +45,6 @@ struct WorksheetsView: View {
                 }
                 .buttonStyle(.bordered)
                 
-                NavigationLink("Test AI pack") {
-                    GeneratorTestView(student: student)
-                }
             }
             .padding(20)
         }

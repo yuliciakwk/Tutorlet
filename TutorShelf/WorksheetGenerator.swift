@@ -1,7 +1,7 @@
 import Foundation
 
-// The JSON Claude sends back (see system-prompt.txt, "Output").
-struct GeneratedPack: Codable {
+// STEP: PLAN — the outline the tutor checks before any pages are written.
+struct PackPlan: Codable {
     var title: String
     var subtitle: String?
     var theme: String?
@@ -11,9 +11,8 @@ struct GeneratedPack: Codable {
     var reward: String?
     var certificate: String?
     var palette: [String: String]?
-    var parts: [GeneratedPart]?
-    var pages: [String]
-    var answerKey: [String]?
+    var buildingOn: String?
+    var parts: [GeneratedPart]
 }
 
 struct GeneratedPart: Codable {
@@ -22,14 +21,32 @@ struct GeneratedPart: Codable {
     var summary: String?
 }
 
+// STEP: FRONT and STEP: PART n replies.
+struct FrontPages: Codable {
+    var cover: String
+    var certificate: String?
+}
+
+struct PartPages: Codable {
+    var pages: [String]
+    var answers: [String]?
+}
+
+// The finished pack, saved with the worksheet so it can be rebuilt or shown later.
+struct GeneratedPack: Codable {
+    var plan: PackPlan
+    var pages: [String]
+    var answers: [[String]]      // one list per part
+}
+
 enum GeneratorError: LocalizedError {
     case missingFile(String)
-    case unreadableReply
+    case unreadableReply(String)
 
     var errorDescription: String? {
         switch self {
         case .missingFile(let name): "\(name) isn't in the app. Check it's ticked for the TutorShelf target."
-        case .unreadableReply: "The AI's reply wasn't in the expected format. Try Redo."
+        case .unreadableReply(let step): "The AI's reply for the \(step) wasn't in the expected format. Try again."
         }
     }
 }
@@ -37,22 +54,77 @@ enum GeneratorError: LocalizedError {
 @MainActor
 enum WorksheetGenerator {
 
-    // MARK: - The whole job: write, check, fix, turn into a PDF
+    // MARK: - Step 1: the plan
 
-    static func makePDF(student: Student, lesson: Lesson,
-                        progress: (String) -> Void) async throws -> (pack: GeneratedPack, pdf: Data) {
-        let style = student.worksheetStyle.lowercased()     // "game", "cozy" or "classic"
+    static func plan(student: Student, lesson: Lesson,
+                     previous: PackPlan? = nil, changes: String = "") async throws -> PackPlan {
+        var prompt = "STEP: PLAN\n\n" + (try request(student: student, lesson: lesson))
+        if let previous, !changes.isEmpty {
+            prompt += "\n\nPREVIOUS PLAN:\n\(json(previous))\n\nTUTOR'S CHANGES: \(changes)"
+        }
+        let reply = try await ClaudeClient.ask(system: try resource("system-prompt", "txt"),
+                                               prompt: prompt, maxTokens: 3000, timeout: 120)
+        return try decode(PackPlan.self, from: reply, step: "plan")
+    }
 
-        progress("Writing the worksheets…")
-        var pack = try await generate(student: student, lesson: lesson, style: style)
+    // MARK: - Step 2: the pages, written in parallel, then checked and printed
 
-        progress("Laying out the pages…")
+    static func write(plan: PackPlan, student: Student, lesson: Lesson,
+                      progress: @escaping (String) -> Void) async throws -> (pack: GeneratedPack, pdf: Data) {
+        let style = student.worksheetStyle.lowercased()
+        let system = try resource("system-prompt", "txt")
+        let context = try request(student: student, lesson: lesson)
+            + "\n\nAPPROVED PLAN:\n\(json(plan))"
+
+        // Request 0 is the cover and certificate; 1…N are the parts.
+        let total = plan.parts.count + 1
+        var replies: [Int: String] = [:]
+        progress("Writing the pages… 0 of \(total) done")
+
+        try await withThrowingTaskGroup(of: (Int, String).self) { group in
+            group.addTask {
+                (0, try await ClaudeClient.ask(system: system, prompt: "STEP: FRONT\n\n" + context,
+                                               maxTokens: 8000, timeout: 240))
+            }
+            for number in 1...plan.parts.count {
+                group.addTask {
+                    (number, try await ClaudeClient.ask(system: system, prompt: "STEP: PART \(number)\n\n" + context,
+                                                        maxTokens: 8000, timeout: 240))
+                }
+            }
+            for try await (index, reply) in group {
+                replies[index] = reply
+                progress("Writing the pages… \(replies.count) of \(total) done")
+            }
+        }
+
+        // If a reply can't be read, ask for that one piece again before giving up.
+        func read<T: Decodable>(_ type: T.Type, index: Int, step: String, prompt: String) async throws -> T {
+            if let value = try? decode(T.self, from: replies[index] ?? "", step: step) { return value }
+            progress("Rewriting the \(step)…")
+            let again = try await ClaudeClient.ask(system: system, prompt: prompt, maxTokens: 8000, timeout: 240)
+            return try decode(T.self, from: again, step: step)
+        }
+
+        let front = try await read(FrontPages.self, index: 0, step: "cover",
+                                   prompt: "STEP: FRONT\n\n" + context)
+        var partPages: [PartPages] = []
+        for number in 1...plan.parts.count {
+            partPages.append(try await read(PartPages.self, index: number, step: "part \(number)",
+                                            prompt: "STEP: PART \(number)\n\n" + context))
+        }
+
+        var pages = [front.cover] + partPages.flatMap(\.pages)
+        if let certificate = front.certificate, !certificate.isEmpty { pages.append(certificate) }
+        var pack = GeneratedPack(plan: plan, pages: pages, answers: partPages.map { $0.answers ?? [] })
+
+        // Lay out, fix pages that run long (up to twice), then print.
+        progress("Checking every page fits…")
         let renderer = WorksheetRenderer()
         try await renderer.load(html: WorksheetHTML.build(pack: pack, style: style))
-
-        // Up to two rounds of fixing pages that run off the bottom.
         for _ in 1...2 {
-            let tooTall = try await renderer.overflowingPages()
+            let answerKeyPage = pack.pages.count          // the app's own page, never sent back
+            let tooTall = try await renderer.overflowingPages().filter { $0 < answerKeyPage }
             if tooTall.isEmpty { break }
             progress("Tidying \(tooTall.count) page\(tooTall.count == 1 ? "" : "s") that ran long…")
             pack = try await shorten(pages: tooTall, in: pack, style: style)
@@ -60,54 +132,57 @@ enum WorksheetGenerator {
         }
 
         progress("Making the PDF…")
-        let pdf = try await renderer.makePDF(pageCount: pack.pages.count)
+        let pdf = try await renderer.makePDF(pageCount: pack.pages.count + 1)   // + answer key
         return (pack, pdf)
     }
 
-    // MARK: - Ask Claude
-
-    static func generate(student: Student, lesson: Lesson, style: String) async throws -> GeneratedPack {
-        let system = try resource("system-prompt", "txt")
-        let prompt = try request(student: student, lesson: lesson, style: style)
-        let reply = try await ClaudeClient.ask(system: system, prompt: prompt,
-                                               maxTokens: 20000, timeout: 300)
-        return try decode(GeneratedPack.self, from: reply)
-    }
-
-    // Sends only the pages that were too tall, and swaps in the shorter versions.
+    // Sends each page that was too tall back on its own, all at the same time, and swaps in
+    // the shorter versions. If a fix fails, the original page is kept rather than losing the pack.
     static func shorten(pages: [Int], in pack: GeneratedPack, style: String) async throws -> GeneratedPack {
-        struct Fix: Decodable { let pages: [String] }
-
         let system = try resource("system-prompt", "txt")
-        let numbered = pages.map { "PAGE \($0 + 1):\n\(pack.pages[$0])" }.joined(separator: "\n\n")
-        let prompt = """
-        STYLE: \(style)
-        CLASSES:
-        \(try classes(for: style))
+        let classList = try classes(for: style)
 
-        These pages are taller than 792px, so they won't fit on paper. Rewrite each one so it fits: \
-        keep the same questions where you can and shorten boxes, lines or passages, or drop the \
-        last question if you must. Keep the answers in the answer key correct.
+        var replies: [Int: String] = [:]
+        await withTaskGroup(of: (Int, String?).self) { group in
+            for index in pages {
+                let page = pack.pages[index]
+                let prompt = """
+                STYLE: \(style)
+                CLASSES:
+                \(classList)
 
-        \(numbered)
+                This page is taller than 792px, so it won't fit on paper. Rewrite it so it fits: \
+                keep the same questions where you can and shorten boxes, lines or passages, or drop \
+                the last question if you must. Keep the same answers.
 
-        Reply with only this JSON: {"pages": ["<section class=\\"page\\">…</section>", …]} \
-        with one page for each page above, in the same order.
-        """
-        let reply = try await ClaudeClient.ask(system: system, prompt: prompt,
-                                               maxTokens: 12000, timeout: 300)
-        let fix = try decode(Fix.self, from: reply)
+                \(page)
+
+                Reply with only this JSON: {"pages": ["<section class=\\"page\\">…</section>"]}
+                """
+                group.addTask {
+                    (index, try? await ClaudeClient.ask(system: system, prompt: prompt,
+                                                        maxTokens: 6000, timeout: 180))
+                }
+            }
+            for await (index, reply) in group {
+                if let reply { replies[index] = reply }
+            }
+        }
 
         var updated = pack
-        for (index, page) in zip(pages, fix.pages) {
-            updated.pages[index] = page
+        for (index, reply) in replies {
+            if let fixed = try? decode(PartPages.self, from: reply, step: "page fix").pages.first,
+               fixed.contains("class=\"page") {
+                updated.pages[index] = fixed
+            }
         }
         return updated
     }
 
     // MARK: - The request (never includes the student's name)
 
-    static func request(student: Student, lesson: Lesson, style: String) throws -> String {
+    static func request(student: Student, lesson: Lesson) throws -> String {
+        let style = student.worksheetStyle.lowercased()
         let topic = lesson.roadmapTopic
         let track = topic?.track ?? student.tracks.first
         let sortedTopics = (track?.topics ?? []).sorted { $0.order < $1.order }
@@ -123,6 +198,12 @@ enum WorksheetGenerator {
         let after = sortedTopics.first {
             $0.order > (topic?.order ?? -1) && $0.status != "Mastered" && $0 !== topic
         }
+
+        // Lessons planned before this one: when a pack is made ahead, these will have been taught first.
+        let plannedBefore = student.lessons
+            .filter { $0.isPlanned && $0.date < lesson.date }
+            .sorted { $0.date < $1.date }
+            .map(\.topic)
 
         let notes = student.lessons
             .filter { !$0.isPlanned }
@@ -150,11 +231,10 @@ enum WorksheetGenerator {
         Focus for this lesson: \(lesson.focus.isEmpty ? "none given" : lesson.focus)
         Needs review: \(needsReview.isEmpty ? "none" : needsReview.joined(separator: ", "))
         Next on the roadmap after this: \(after?.title ?? "none")
+        Planned before this lesson (will be taught first, no notes yet): \(plannedBefore.isEmpty ? "none" : plannedBefore.joined(separator: ", "))
 
         RECENT LESSON NOTES (newest first)
         \(notes.isEmpty ? "No lessons yet." : notes.joined(separator: "\n"))
-
-        Write the pack.
         """
         return scrub(text, name: student.name)
     }
@@ -186,15 +266,20 @@ enum WorksheetGenerator {
         return guides[style] ?? guides["classic"] ?? ""
     }
 
+    static func json<T: Encodable>(_ value: T) -> String {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .withoutEscapingSlashes]
+        return (try? String(data: encoder.encode(value), encoding: .utf8)) ?? "{}"
+    }
+
     // Claude sometimes wraps JSON in ```json fences or adds a sentence. Keep only the {...} part.
-    static func decode<T: Decodable>(_ type: T.Type, from reply: String) throws -> T {
+    static func decode<T: Decodable>(_ type: T.Type, from reply: String, step: String) throws -> T {
         guard let start = reply.firstIndex(of: "{"),
-              let end = reply.lastIndex(of: "}") else { throw GeneratorError.unreadableReply }
-        let json = Data(reply[start...end].utf8)
+              let end = reply.lastIndex(of: "}") else { throw GeneratorError.unreadableReply(step) }
         do {
-            return try JSONDecoder().decode(T.self, from: json)
+            return try JSONDecoder().decode(T.self, from: Data(reply[start...end].utf8))
         } catch {
-            throw GeneratorError.unreadableReply
+            throw GeneratorError.unreadableReply(step)
         }
     }
 }
