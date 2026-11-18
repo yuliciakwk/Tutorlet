@@ -56,7 +56,7 @@ I've tutored 25+ students from Grade 1 to Grade 11 over five years. The best les
 ## Running it
 
 1. Open `TutorShelf.xcodeproj` in Xcode and choose an iPad simulator.
-2. Create `TutorShelf/Secrets.swift` (it's in `.gitignore` and never committed):
+2. Create `TutorShelf/Services/Secrets.swift` (it's in `.gitignore` and never committed):
 
    ```swift
    enum Secrets {
