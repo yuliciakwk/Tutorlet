@@ -180,7 +180,7 @@ struct TrackCard: View {
         - For a goal, list the steps needed to reach the goal, and nothing beyond it.
         - Put them in teaching order: each topic builds on the ones before it, starting where the kept topics leave off.
         - Give extra attention to the focus areas that belong to \(track.name).
-        - After every 3 or 4 new topics, add a checkpoint topic named "Review: …" that revisits what came before it.
+        - After every 3 or 4 new topics, add a checkpoint named "Review: …" whose name sums up only the topics since the last review, never a topic that comes later.
         - If 3 or more of the kept topics come after the last "Review:" topic, start with a review of those kept topics before anything new.
         """
 
@@ -193,8 +193,12 @@ struct TrackCard: View {
                 .split(separator: "\n")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
                 .filter { !$0.isEmpty }
+            // Skip any title that's already a kept topic (the AI sometimes repeats one)
+            let existing = Set(kept.map { $0.title.lowercased().trimmingCharacters(in: .whitespaces) })
+            let fresh = titles.filter { !existing.contains($0.lowercased().trimmingCharacters(in: .whitespaces)) }
+
             removeUnstartedTopics()
-            for title in titles {
+            for title in fresh {
                 track.topics.append(Topic(title: title, order: track.topics.count))
             }
         } catch {
